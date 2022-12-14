@@ -1,18 +1,17 @@
 import pygame
 from game.config import screenWidth, screenHeight
 
-class Player():
+class Player:
     speed = 100
+    width = 100
+    height = 100
+    color = (255, 255, 0)
     
-    def __init__(self, x, y, width, height, color, name):
+    def __init__(self, x, y, name):
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
-        self.rect = (x,y,width,height)
+        self.rect =  pygame.Rect(x, y, self.width, self.height)
         self.vel = 3
-        
         self.name = name
 
     def move(self, delta):
@@ -38,5 +37,4 @@ class Player():
         if not (self.y < 0 and self.velY == -1) and not (self.y > screenWidth and self.velY == 1):
             self.y += self.velY * self.speed * delta
 
-    def update(self):
-        self.rect = (self.x, self.y, self.width, self.height)
+        self.rect.update(self.x, self.y, self.width, self.height)

@@ -1,6 +1,8 @@
 import pygame
+import math
 from game.config import screenWidth, screenHeight
 from game.player import Player
+from game.bullet import Bullet
 from game.network import Network
 
 pygame.init()
@@ -13,33 +15,47 @@ font32 = pygame.font.Font("assets/font/font.otf", 32)
 def main():
     net = Network()
     
-    players = net.initialState
-    name = input("Enter username: ")
+    gamestate = net.initialState
     
-    localPlayer = Player(100, 100, 100, 100, (0, 255, 0), name)
+    name = input("Enter username: ")
+    localPlayer = Player(100, 100, name)
     
     clock = pygame.time.Clock()
 
     while True:
+        newBullets = []
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit()
+                
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                distance = pygame.mouse.get_pos() - pygame.Vector2(localPlayer.rect.center)
+                angle = math.atan2(distance.y, distance.x)
+                newBullets.append(Bullet(localPlayer.x, localPlayer.y, angle))
 
         # Logic
         delta = clock.tick(60) / 1000
         
         # Local player logic
         localPlayer.move(delta)
-        players = net.send(localPlayer)
         
-        for player in players.values():
-            player.update()
+        payload = {}
+        payload["player"] = localPlayer
+        payload["bullets"] = newBullets
+        
+        gamestate = net.send(payload)
+        players = gamestate["players"]
+        bullets = gamestate["bullets"]
 
         screen.fill((255,255,255))
         
         for player in players.values():
             pygame.draw.rect(screen, player.color, player.rect)
             writeText(player.name, font32, player.x, player.y)
+        
+        for bullet in bullets:
+            pygame.draw.rect(screen, (75, 100, 175), bullet.rect)
         
         pygame.display.update()
 
