@@ -1,47 +1,69 @@
-import socket
-import pickle
-from _thread import *
-import sys
+from _thread import start_new_thread
+from pickle import dumps, loads
+from socket import socket, AF_INET, SOCK_STREAM, gethostname, gethostbyname, error as socket_error
 
-from gameserver import Game
+from game import Game, Player, Projectile
 
-server = "localhost"
-port = 5555
-maxConnections = 5
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+class Server:
+    def __init__(self):
+        self.address = ("localhost", 5555)
+        self.socket = socket(AF_INET, SOCK_STREAM)
+        self.maxConnections = 5
+        self.game = Game()
+        
+        start_new_thread(self.game.gameloop, ())
 
-s.bind((server, port))
+        if self.bindSocket():
+            self.runServer()
 
-s.listen(maxConnections)
-print(f"Waiting for a connection, server started on port {port} with max connections {maxConnections}")
-
-def threaded_client(conn):
-    reply = game.getState()
-    conn.send(pickle.dumps(reply))
-    
-    while True:
+    def bindSocket(self):
         try:
-            data = pickle.loads(conn.recv(512))
-            
-            if data:
-                game.updateState(data)
-                payload = game.getState()
-            else:
-                print("Disconnected")
+            self.socket.bind(self.address)
+            return True
+        except socket_error as err:
+            print(err)
+            return False
+
+    def runServer(self):
+        self.socket.listen(self.maxConnections)
+        print("Server started, waiting for connections.")
+
+        while True:
+            connection, address = self.socket.accept()
+            start_new_thread(self.threaded_client, (connection, address[0]))
+
+        self.socket.close()
+
+    def threaded_client(self, connection, address):
+        username = connection.recv(128).decode("utf-8")
+        print(f"{username} connected with adress: {address}")
+        
+        connection.send(dumps(self.game.joinPlayer(username)))
+        self.playGame(connection)
+        
+        print(f"{username} disconnected with adress: {address}")
+        connection.close()
+
+    def playGame(self, connection):
+        while True:
+            try:
+                if payload := loads(connection.recv(2048)):
+                    self.processPayload(payload, connection)
+                else:
+                    break
+            except Exception as err:
+                print(err)
                 break
+            
 
-            conn.sendall(pickle.dumps(payload))
-        except:
-            break
+    def processPayload(self, payload : Player or Projectile, connection):
+        if isinstance(payload, Player):
+            players, projectiles = self.game.updatePlayer(payload)
+            connection.sendall(dumps((players, projectiles)))
+        elif isinstance(payload, Projectile):
+            projectiles = self.game.updateProjectiles(payload)
+            connection.sendall(dumps(projectiles))
 
-    print(f"Lost connection!")
-    conn.close()
-
-game = Game()
-start_new_thread(game.gameloop, ())
-
-while True:
-    conn, addr = s.accept()
-    print("Connected to:", addr)
-    start_new_thread(threaded_client, (conn,))
+if __name__ == '__main__':
+    server = Server()
