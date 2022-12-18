@@ -43,12 +43,13 @@ class Server:
         self.playGame(connection)
         
         print(f"{username} disconnected with adress: {address}")
+        self.game.killPlayer(username)
         connection.close()
 
     def playGame(self, connection):
         while True:
             try:
-                if payload := loads(connection.recv(2048)):
+                if payload := loads(connection.recv(1024)):
                     self.processPayload(payload, connection)
                 else:
                     break
@@ -62,8 +63,7 @@ class Server:
             players, projectiles = self.game.updatePlayer(payload)
             connection.sendall(dumps((players, projectiles)))
         elif isinstance(payload, Projectile):
-            projectiles = self.game.updateProjectiles(payload)
-            connection.sendall(dumps(projectiles))
+            self.game.updateProjectiles(payload)
 
 if __name__ == '__main__':
     server = Server()
