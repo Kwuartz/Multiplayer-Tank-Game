@@ -7,13 +7,12 @@ from game import Projectile, Player
 class Network:
   def __init__(self, username):
     self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.server = "localhost"
-    self.port = 5555
+    self.address = ("35.246.37.250", 3389)
     self.initialState = self.connect(username)
 
   def connect(self, username):
     try:
-      self.client.connect((self.server, self.port))
+      self.client.connect(self.address)
       self.client.send(str.encode(username))
       return pickle.loads(self.client.recv(4096))
     except:

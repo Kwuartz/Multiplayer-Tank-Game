@@ -8,7 +8,7 @@ def main():
     username = input("Enter username: ")
     network = Network(username)
     
-    players, projectiles = network.getState()
+    players, projectiles, obstacles = network.getState()
     localPlayer = players[username]
     
     pygame.init()
@@ -36,7 +36,7 @@ def main():
         # Talking to server
         delta = clock.tick(60) / 1000
         
-        localPlayer.update(delta)
+        localPlayer.update(delta, obstacles)
         players, projectiles = network.send(localPlayer)
         localPlayer = players[username]
 
@@ -56,6 +56,9 @@ def main():
         
         for projectile in projectiles:
             screen.blit(projectileImage, projectile.rect)
+            
+        for obstacle in obstacles:
+            pygame.draw.rect(screen, (0, 0, 0), obstacle)
         
         pygame.display.update()
 
