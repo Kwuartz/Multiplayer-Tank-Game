@@ -16,20 +16,23 @@ obstacles.append(pygame.Rect(screenWidth - 25, 0, 25, screenHeight))
 # Random
 totalObstacles = 40
 for _ in range(totalObstacles):
-    obstacles.append(pygame.Rect(random.randint(0, screenWidth), random.randint(100, screenHeight), random.randint(25, 75), random.randint(25, 75)))
+    obstacles.append(pygame.Rect(random.randint(0, screenWidth), random.randint(0, screenHeight), random.randint(25, 75), random.randint(25, 75)))
 
 class Game:
     def __init__(self):
         self.clock = pygame.time.Clock()
         self.players = {}
+        self.gameEvents = {}
         self.projectiles = []
         self.obstacles = obstacles
 
     def updatePlayer(self, updatedPlayer):
         player = self.players[updatedPlayer.username]
+        
         player.angle, player.turretAngle = updatedPlayer.angle, updatedPlayer.turretAngle
         player.x, player.y = updatedPlayer.x, updatedPlayer.y
         player.rect = updatedPlayer.rect
+        
         return self.players, self.projectiles
 
     def updateProjectiles(self, projectile):
@@ -37,7 +40,18 @@ class Game:
         return self.projectiles
 
     def joinPlayer(self, username):
-        self.players[username] = Player(30, 30, username)
+        found = False
+        while not found:
+            x = random.randint(25, screenWidth - 25)
+            y = random.randint(25, screenHeight - 25)
+            player = Player(x, y, username)
+            
+            # Getting player spawn
+            if player.rect.collidelist(self.obstacles) == -1:
+                found = True
+                
+        self.players[username] = player
+        self.gameEvents[username] = []
         return self.players, self.projectiles, self.obstacles
     
     def killPlayer(self, username):
@@ -111,14 +125,16 @@ class Player:
         
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.angle += delta * self.rotateSpeed
-            self.turretAngle -= delta * self.rotateSpeed
+            # self.turretAngle -= delta * self.rotateSpeed
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             self.angle -= delta * self.rotateSpeed
-            self.turretAngle += delta * self.rotateSpeed
+            # self.turretAngle += delta * self.rotateSpeed
         
-        rotateDirection = -1 if self.turretAngle > mouseAngle else 1
-        self.turretAngle += delta * self.turretRotateSpeed * rotateDirection
-          
+        # Uncomment these if you want turret to slowly follow the mouse
+        # rotateDirection = -1 if self.turretAngle > mouseAngle else 1
+        # self.turretAngle += delta * self.turretRotateSpeed * rotateDirection
+        self.turretAngle = mouseAngle
+        
         # Moving player
         if keys[pygame.K_UP] or keys[pygame.K_w]:
             self.vel = -1

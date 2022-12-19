@@ -31,12 +31,12 @@ def main():
                 
             # Firing bullets
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                network.send(Projectile(localPlayer.rect.centerx, localPlayer.rect.centery, math.radians(localPlayer.turretAngle)))
+                network.send(Projectile(localPlayer.rect.centerx, localPlayer.rect.centery, math.radians(localPlayer.turretAngle)), False)
 
         # Talking to server
         delta = clock.tick(60) / 1000
-        
         localPlayer.update(delta, obstacles)
+        
         players, projectiles = network.send(localPlayer)
         localPlayer = players[username]
 
