@@ -56,15 +56,19 @@ class Game:
         self.gameEvents[username] = []
         return self.players, self.projectiles, self.obstacles
     
-    def addEvent(self, name, data):
+    def addEvent(self, name, data, player = False):
         event = GameEvent(name, data)
-        for eventList in self.gameEvents.values():
-            eventList.append(event)
+        
+        if player:
+            self.gameEvents[player].append(event)
+        else:
+            for eventList in self.gameEvents.values():
+                eventList.append(event)
     
     def killPlayer(self, username):
         if username in self.players:
-            del self.players[username]
-            del self.gameEvents[username]
+            self.addEvent("player-death", self.players[username])
+            self.addEvent("death", None, username)
 
     def gameloop(self):
         while True:
@@ -75,9 +79,13 @@ class Game:
 
                 for player in self.players.values():
                     if player.rect.colliderect(projectile.rect):
-                        player.health -= 10
                         self.projectiles.remove(projectile)
                         self.addEvent("projectile-destroyed", index)
+                        
+                        player.health -= 10
+                        if player.health <= 0:
+                            self.killPlayer(player.username)
+                        
                         break
                     
                 for obstacle in self.obstacles:
@@ -187,3 +195,21 @@ class Player:
         
         # Updating rect
         self.rect.x, self.rect.y = self.x, self.y
+
+class Explosion:
+    def __init__(self, x, y, size, color, duration):
+        self.x = x
+        self.y = y
+        self.size = size
+        self.color = color
+        self.duration = duration
+        self.radius = 0
+        self.time_elapsed = 0
+
+    def update(self, dt):
+        self.time_elapsed += dt
+        if self.time_elapsed > self.duration:
+            self.time_elapsed = 0
+            self.duration = -1
+            
+        self.radius = int(self.size * self.time_elapsed / self.duration)

@@ -1,27 +1,23 @@
+from pickle import loads, dumps
 import socket
-import pickle
 import sys
 
+
 class Network:
-  def __init__(self, username):
-    self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.address = ("localhost", 5555) # ("35.246.37.250", 3389) google one
-    self.initialState = self.connect(username)
+    def __init__(self):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.address = ("35.246.37.250", 3389) # 35.246.37.250 3389 this google one
 
-  def connect(self, username):
-    try:
-      self.client.connect(self.address)
-      self.client.send(str.encode(username))
-      return pickle.loads(self.client.recv(4096))
-    except:
-      raise
-  
-  def getState(self):
-    return self.initialState
+    def connect(self, username):
+        try:
+            self.client.connect(self.address)
+            self.client.send(dumps(username))
+            return loads(self.client.recv(4096))
+        except:
+            raise
 
-  def send(self, payload, recieving = True):
-    self.client.send(pickle.dumps(payload))
-    
-    if recieving:
-      return pickle.loads(self.client.recv(4096))
-    
+    def send(self, payload, recieving=True):
+        self.client.send(dumps(payload))
+
+        if recieving:
+            return loads(self.client.recv(4096))
