@@ -1,7 +1,7 @@
 import pygame
 import math
 from config import screenWidth, screenHeight
-from game import Player, Projectile
+from game import Player, Projectile, GameEvent
 from network import Network
 
 def main():
@@ -33,12 +33,24 @@ def main():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 network.send(Projectile(localPlayer.rect.centerx, localPlayer.rect.centery, math.radians(localPlayer.turretAngle)), False)
 
-        # Talking to server
+        # Logic
         delta = clock.tick(60) / 1000
+        
+        for projectile in projectiles:
+            projectile.update(delta)
+        
         localPlayer.update(delta, obstacles)
         
-        players, projectiles = network.send(localPlayer)
+        # Getting changes from server
+        players, gameEvents = network.send(localPlayer)
         localPlayer = players[username]
+        
+        # Event handling
+        for event in gameEvents:
+            if event.name == "new-projectile":
+                projectiles.append(event.data)
+            elif event.name == "projectile-destroyed":
+                del projectiles[event.data]
 
         screen.fill((255,255,255))
         

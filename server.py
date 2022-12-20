@@ -60,8 +60,8 @@ class Server:
 
     def processPayload(self, payload : Player or Projectile, connection):
         if isinstance(payload, Player):
-            players, projectiles = self.game.updatePlayer(payload)
-            connection.sendall(dumps((players, projectiles)))
+            players, gameEvents = self.game.updatePlayer(payload)
+            connection.sendall(dumps((players, gameEvents)))
         elif isinstance(payload, Projectile):
             self.game.updateProjectiles(payload)
 

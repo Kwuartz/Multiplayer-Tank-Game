@@ -26,18 +26,20 @@ class Game:
         self.projectiles = []
         self.obstacles = obstacles
 
-    def updatePlayer(self, updatedPlayer):
-        player = self.players[updatedPlayer.username]
+    def updatePlayer(self, data):
+        player = self.players[data.username]
         
-        player.angle, player.turretAngle = updatedPlayer.angle, updatedPlayer.turretAngle
-        player.x, player.y = updatedPlayer.x, updatedPlayer.y
-        player.rect = updatedPlayer.rect
+        player.angle, player.turretAngle = data.angle, data.turretAngle
+        player.x, player.y, player.rect = data.x, data.y, data.rect
         
-        return self.players, self.projectiles
+        try:
+            return self.players, self.gameEvents[player.username]
+        finally:
+            self.gameEvents[player.username] = []
 
     def updateProjectiles(self, projectile):
         self.projectiles.append(projectile)
-        return self.projectiles
+        self.addEvent("new-projectile", projectile)
 
     def joinPlayer(self, username):
         found = False
@@ -54,28 +56,36 @@ class Game:
         self.gameEvents[username] = []
         return self.players, self.projectiles, self.obstacles
     
+    def addEvent(self, name, data):
+        event = GameEvent(name, data)
+        for eventList in self.gameEvents.values():
+            eventList.append(event)
+    
     def killPlayer(self, username):
         if username in self.players:
             del self.players[username]
+            del self.gameEvents[username]
 
     def gameloop(self):
         while True:
             delta = self.clock.tick(60) / 1000
 
-            for projectile in self.projectiles:
+            for index, projectile in enumerate(self.projectiles):
                 projectile.update(delta)
 
                 for player in self.players.values():
                     if player.rect.colliderect(projectile.rect):
                         player.health -= 10
                         self.projectiles.remove(projectile)
+                        self.addEvent("projectile-destroyed", index)
                         break
                     
                 for obstacle in self.obstacles:
                     if obstacle.colliderect(projectile.rect):
                         if projectile in self.projectiles:
                             self.projectiles.remove(projectile)
-                        break
+                            self.addEvent("projectile-destroyed", index)
+                            break
                         
             for player in self.players.values():
                 pass
@@ -100,6 +110,12 @@ class Projectile:
 
         self.rect.x, self.rect.y = self.x, self.y
 
+class GameEvent:
+    def __init__(self, name, data):
+        self.name = name
+        self.data = data
+        
+
 class Player:
     speed = 100
     health = 100
@@ -118,9 +134,13 @@ class Player:
         self.username = username
 
     def update(self, delta, obstacles):
-        # Rotating turret and tank
+        # Rotating turret
         mouseDistance = pygame.mouse.get_pos() - pygame.Vector2(self.rect.center)
         mouseAngle = math.degrees(math.atan2(mouseDistance.y, mouseDistance.x))
+        
+        self.turretAngle = mouseAngle
+        
+        # Rotating tank
         keys = pygame.key.get_pressed()
         
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
@@ -133,7 +153,6 @@ class Player:
         # Uncomment these if you want turret to slowly follow the mouse
         # rotateDirection = -1 if self.turretAngle > mouseAngle else 1
         # self.turretAngle += delta * self.turretRotateSpeed * rotateDirection
-        self.turretAngle = mouseAngle
         
         # Moving player
         if keys[pygame.K_UP] or keys[pygame.K_w]:
