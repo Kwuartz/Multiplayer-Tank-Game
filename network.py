@@ -6,7 +6,7 @@ import sys
 class Network:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.address = ("35.246.37.250", 3389) # 35.246.37.250 3389 this google one
+        self.address = ("localhost", 5555) # 35.246.37.250 3389 this google one
 
     def connect(self, username):
         try:

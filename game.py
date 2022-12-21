@@ -67,7 +67,9 @@ class Game:
     
     def killPlayer(self, username):
         if username in self.players:
-            self.addEvent("player-death", self.players[username])
+            player = self.players[username]
+            player.dead = True
+            self.addEvent("player-death", player)
             self.addEvent("death", None, username)
 
     def gameloop(self):
@@ -78,7 +80,7 @@ class Game:
                 projectile.update(delta)
 
                 for player in self.players.values():
-                    if player.rect.colliderect(projectile.rect):
+                    if not player.dead and player.rect.colliderect(projectile.rect):
                         self.projectiles.remove(projectile)
                         self.addEvent("projectile-destroyed", index)
                         
@@ -127,6 +129,7 @@ class GameEvent:
 class Player:
     speed = 100
     health = 100
+    dead = False
     angle = turretAngle = 0
     
     rotateSpeed = 125

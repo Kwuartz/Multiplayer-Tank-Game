@@ -9,6 +9,7 @@ from config import (
     totalPlayerExplosions, playerExplosionColors, playerExplosionDuration, playerExplosionRadius, playerExplosionSize
 )
 from game import Player, Projectile, Explosion, GameEvent
+from gui import Button
 from network import Network
 
 
@@ -21,6 +22,8 @@ def main():
     clock = pygame.time.Clock()
     
     font16 = pygame.font.Font("assets/font/font.otf", 16)
+
+    respawnButton = Button(100, 100, 200, 50, "Respawn", font16, (255, 255, 255), (255, 255, 255), 5)
 
     tankImage = pygame.image.load("assets/gfx/tank.png").convert_alpha()
     turretImage = pygame.image.load("assets/gfx/turret.png").convert_alpha()
@@ -78,20 +81,22 @@ def main():
                         explosions.append(Explosion(player.x + xOffset, player.y + yOffset, explosionSize, random.choice(playerExplosionColors), explosionDuration))
                 elif event.name == "death":
                     playing = False
+                    continue
             
             screen.fill((255,255,255))
             
             for player in players.values():
-                # Rotating turret and tank
-                rotatedTank = pygame.transform.rotate(tankImage, player.angle)
-                rotatedTurret = pygame.transform.rotate(turretImage, player.turretAngle * -1 - 90)
-                
-                screen.blit(rotatedTank, rotatedTank.get_rect(center=player.rect.center))
-                screen.blit(rotatedTurret, rotatedTurret.get_rect(center=player.rect.center))
+                if not player.dead:
+                    # Rotating turret and tank
+                    rotatedTank = pygame.transform.rotate(tankImage, player.angle)
+                    rotatedTurret = pygame.transform.rotate(turretImage, player.turretAngle * -1 - 90)
+                    
+                    screen.blit(rotatedTank, rotatedTank.get_rect(center=player.rect.center))
+                    screen.blit(rotatedTurret, rotatedTurret.get_rect(center=player.rect.center))
 
-                # Health bar
-                pygame.draw.rect(screen, (255, 0, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width, 10))
-                pygame.draw.rect(screen, (0, 255, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width * player.health / 100, 10))
+                    # Health bar
+                    pygame.draw.rect(screen, (255, 0, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width, 10))
+                    pygame.draw.rect(screen, (0, 255, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width * player.health / 100, 10))
             
             for projectile in projectiles:
                 screen.blit(projectileImage, projectile.rect)
@@ -108,16 +113,22 @@ def main():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit()
-
-            network.send("keep-alive", False)
+                elif event.type == pygame.MOUSEBUTTONDOWN and respawnButton.rect.collidepoint(pygame.mouse.get_pos()):
+                    players, projectiles, obstacles = network.send(GameEvent("player-respawn", username))
+                    localPlayer = players[username]
+                    explosions = []
+                    playing = True
+                    continue
             
-            players, projectiles, obstacles = network.send(GameEvent("player-respawn", username))
-            localPlayer = players[username]
-            explosions = []
-            playing = True
+            clock.tick(60)
 
-def writeText(text, font, x, y):
-  renderedText = font.render(text, True, (0, 0, 0))
-  screen.blit(renderedText, (x, y))
+            # Stop socket from closing
+            network.send("keep-alive", False)
+
+            screen.fill((0, 0, 0))
+
+            respawnButton.draw(screen)
+            
+            pygame.display.update()
 
 main()
