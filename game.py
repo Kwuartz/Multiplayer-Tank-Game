@@ -2,21 +2,21 @@ import pygame
 import math
 import random
 
-from config import screenWidth, screenHeight
+from config import mapWidth, mapHeight
 
 # Obstacles
 obstacles = []
 
 # Border
-obstacles.append(pygame.Rect(0, 0, screenWidth, 25))
-obstacles.append(pygame.Rect(0, screenHeight - 25, screenWidth, 25))
-obstacles.append(pygame.Rect(0, 0, 25, screenHeight))
-obstacles.append(pygame.Rect(screenWidth - 25, 0, 25, screenHeight))
+obstacles.append(pygame.Rect(0, 0, mapWidth, 25))
+obstacles.append(pygame.Rect(0, mapHeight - 25, mapWidth, 25))
+obstacles.append(pygame.Rect(0, 0, 25, mapHeight))
+obstacles.append(pygame.Rect(mapWidth - 25, 0, 25, mapHeight))
 
 # Random
-totalObstacles = 40
+totalObstacles = 65
 for _ in range(totalObstacles):
-    obstacles.append(pygame.Rect(random.randint(0, screenWidth), random.randint(0, screenHeight), random.randint(25, 75), random.randint(25, 75)))
+    obstacles.append(pygame.Rect(random.randint(0, mapWidth), random.randint(0, mapHeight), random.randint(25, 75), random.randint(25, 75)))
 
 class Game:
     def __init__(self):
@@ -44,8 +44,8 @@ class Game:
     def joinPlayer(self, username):
         found = False
         while not found:
-            x = random.randint(25, screenWidth - 25)
-            y = random.randint(25, screenHeight - 25)
+            x = random.randint(25, mapWidth - 25)
+            y = random.randint(25, mapHeight - 25)
             player = Player(x, y, username)
             
             # Getting player spawn
@@ -144,9 +144,9 @@ class Player:
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.username = username
 
-    def update(self, delta, obstacles):
+    def update(self, delta, obstacles, cameraOffset):
         # Rotating turret
-        mouseDistance = pygame.mouse.get_pos() - pygame.Vector2(self.rect.center)
+        mouseDistance = pygame.mouse.get_pos() - pygame.Vector2(self.rect.center) + cameraOffset # When scrolling the mouse position is different
         mouseAngle = math.degrees(math.atan2(mouseDistance.y, mouseDistance.x))
         
         self.turretAngle = mouseAngle

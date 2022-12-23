@@ -4,12 +4,12 @@ import random
 import time
 
 from config import (
-    screenWidth, screenHeight,
+    screenWidth, screenHeight, mapWidth, mapHeight,
     projectileExplosionColor, projectileExplosionDuration, projectileExplosionSize,
     totalPlayerExplosions, playerExplosionColors, playerExplosionDuration, playerExplosionRadius, playerExplosionSize
 )
 from game import Player, Projectile, Explosion, GameEvent
-from gui import Button
+from gui import Button, TextInputBox
 from network import Network
 
 
@@ -23,30 +23,52 @@ def main():
     
     font16 = pygame.font.Font("assets/font/font.otf", 16)
 
-    respawnButton = Button(100, 100, 200, 50, "Respawn", font16, (255, 255, 255), (255, 255, 255), 5)
+    
+    usernameBox = TextInputBox(screenWidth / 2 - 150, screenHeight / 2 + 55, 300, 100, font16, (255, 255, 255), (255, 255, 255), 5)
+    playButton = Button(screenWidth / 2 - 150, screenHeight / 2 - 55, 300, 100, "Play", font16, (255, 255, 255), (255, 255, 255), 5)
+    respawnButton = Button(screenWidth / 2 - 150, screenHeight / 2 - 50, 300, 100, "Respawn", font16, (255, 255, 255), (255, 255, 255), 5)
 
     tankImage = pygame.image.load("assets/gfx/tank.png").convert_alpha()
     turretImage = pygame.image.load("assets/gfx/turret.png").convert_alpha()
     projectileImage = pygame.image.load("assets/gfx/projectile.png").convert_alpha()
     
-    username = input("Enter username: ")
-    players, projectiles, obstacles = network.connect(username)
-    localPlayer = players[username]
-    explosions = []
-    
-    playing = True
-    
-    while True:
+    playing = False
+    running = True
+
+    while not playing and running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            elif (usernameBox.handleEvent(event) or (event.type == pygame.MOUSEBUTTONDOWN and playButton.rect.collidepoint(pygame.mouse.get_pos()))) and len(usernameBox.text) > 0:
+                username = usernameBox.text
+                players, projectiles, obstacles = network.connect(username)
+                localPlayer = players[username]
+                explosions = []
+
+                playing = True
+        
+        clock.tick(60)
+        screen.fill((0, 0, 0))
+        usernameBox.draw(screen)
+        playButton.draw(screen)
+        pygame.display.update()
+
+    while running:
         if playing:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    quit()
+                    running = False
+
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                     network.send(Projectile(localPlayer.rect.centerx, localPlayer.rect.centery, math.radians(localPlayer.turretAngle)), False)
             
             # Logic
             delta = clock.tick(60) / 1000
             
+            # For scrolling
+            cameraOffset = cameraOffsetX, cameraOffsetY = pygame.Vector2(max(min(localPlayer.x - screenWidth / 2, mapWidth - screenWidth), 0), max(min(localPlayer.y - screenHeight / 2, mapHeight - screenHeight), 0))
+
             for projectile in projectiles:
                 projectile.update(delta)
                 
@@ -56,12 +78,11 @@ def main():
                 if explosion.duration < 0:
                     explosions.remove(explosion)
             
-            localPlayer.update(delta, obstacles)
             
             # Getting changes from server
+            localPlayer.update(delta, obstacles, cameraOffset)
             players, gameEvents = network.send(localPlayer)
-            localPlayer = players[username]
-            
+
             # Event handling
             for event in gameEvents:
                 if event.name == "new-projectile":
@@ -81,38 +102,39 @@ def main():
                         explosions.append(Explosion(player.x + xOffset, player.y + yOffset, explosionSize, random.choice(playerExplosionColors), explosionDuration))
                 elif event.name == "death":
                     playing = False
-                    continue
-            
+
+            # Graphics
             screen.fill((255,255,255))
-            
+
             for player in players.values():
                 if not player.dead:
                     # Rotating turret and tank
                     rotatedTank = pygame.transform.rotate(tankImage, player.angle)
                     rotatedTurret = pygame.transform.rotate(turretImage, player.turretAngle * -1 - 90)
                     
-                    screen.blit(rotatedTank, rotatedTank.get_rect(center=player.rect.center))
-                    screen.blit(rotatedTurret, rotatedTurret.get_rect(center=player.rect.center))
+                    screen.blit(rotatedTank, rotatedTank.get_rect(center=player.rect.center - cameraOffset))
+                    screen.blit(rotatedTurret, rotatedTurret.get_rect(center=player.rect.center - cameraOffset))
 
                     # Health bar
-                    pygame.draw.rect(screen, (255, 0, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width, 10))
-                    pygame.draw.rect(screen, (0, 255, 0), (player.rect.x, player.rect.y - player.height * 0.25, player.width * player.health / 100, 10))
+                    pygame.draw.rect(screen, (255, 0, 0), (player.rect.x - cameraOffsetX, player.rect.y - cameraOffsetY - player.height * 0.25, player.width, 10))
+                    pygame.draw.rect(screen, (0, 255, 0), (player.rect.x - cameraOffsetX, player.rect.y - cameraOffsetY - player.height * 0.25, player.width * player.health / 100, 10))
             
             for projectile in projectiles:
-                screen.blit(projectileImage, projectile.rect)
+                screen.blit(projectileImage, (projectile.rect.topleft - cameraOffset, (projectile.width, projectile.height)))
                 
             for obstacle in obstacles:
-                pygame.draw.rect(screen, (0, 0, 0), obstacle)
+                pygame.draw.rect(screen, (0, 0, 0), (obstacle.topleft - cameraOffset, (obstacle.width, obstacle.height)))
             
             for explosion in explosions:
-                pygame.draw.circle(screen, explosion.color, (explosion.x, explosion.y), explosion.radius)
+                pygame.draw.circle(screen, explosion.color, (explosion.x, explosion.y) - cameraOffset, explosion.radius)
             
             pygame.display.update()
         
         else:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    quit()
+                    running = False
+                    
                 elif event.type == pygame.MOUSEBUTTONDOWN and respawnButton.rect.collidepoint(pygame.mouse.get_pos()):
                     players, projectiles, obstacles = network.send(GameEvent("player-respawn", username))
                     localPlayer = players[username]
@@ -126,9 +148,7 @@ def main():
             network.send("keep-alive", False)
 
             screen.fill((0, 0, 0))
-
             respawnButton.draw(screen)
-            
             pygame.display.update()
 
 main()

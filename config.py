@@ -1,5 +1,10 @@
-screenWidth = 1600
-screenHeight = 900
+from screeninfo import get_monitors
+
+mapWidth = 4000
+mapHeight = 4000
+
+screenWidth = get_monitors()[0].width
+screenHeight = get_monitors()[0].height
 
 projectileExplosionColor = (245, 245, 0)
 projectileExplosionDuration = 0.25

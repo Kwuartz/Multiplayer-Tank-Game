@@ -44,7 +44,8 @@ class Server:
         print(f"{username} disconnected with adress: {address}")
         
         if username in self.game.players:
-            self.game.killPlayer(username)
+            if self.game.players[username].dead == False:
+                self.game.killPlayer(username)
             del self.game.players[username], self.game.gameEvents[username]
 
     def playGame(self, connection):
