@@ -8,8 +8,8 @@ from config import (
     projectileExplosionColor, projectileExplosionDuration, projectileExplosionSize,
     totalPlayerExplosions, playerExplosionColors, playerExplosionDuration, playerExplosionRadius, playerExplosionSize
 )
-from game import Player, Projectile, Explosion, GameEvent
-from gui import Button, TextInputBox
+from game import Player, Projectile, Explosion, GameEvent, Obstacle
+from gui import Button, TextInputBox, Minimap
 from network import Network
 
 
@@ -53,6 +53,8 @@ def main():
         usernameBox.draw(screen)
         playButton.draw(screen)
         pygame.display.update()
+
+    minimap = Minimap(20, 20, 200, 200, username)
 
     while running:
         if playing:
@@ -123,10 +125,12 @@ def main():
                 screen.blit(projectileImage, (projectile.rect.topleft - cameraOffset, (projectile.width, projectile.height)))
                 
             for obstacle in obstacles:
-                pygame.draw.rect(screen, (0, 0, 0), (obstacle.topleft - cameraOffset, (obstacle.width, obstacle.height)))
+                pygame.draw.rect(screen, obstacle.color, (obstacle.rect.topleft - cameraOffset, (obstacle.rect.width, obstacle.rect.height)))
             
             for explosion in explosions:
                 pygame.draw.circle(screen, explosion.color, (explosion.x, explosion.y) - cameraOffset, explosion.radius)
+
+            minimap.draw(screen, players, obstacles)
             
             pygame.display.update()
         
@@ -136,7 +140,7 @@ def main():
                     running = False
                     
                 elif event.type == pygame.MOUSEBUTTONDOWN and respawnButton.rect.collidepoint(pygame.mouse.get_pos()):
-                    players, projectiles, obstacles = network.send(GameEvent("player-respawn", username))
+                    players, projectiles, obstacles = network.send(GameEvent("player-respawn", username), True, (500000))
                     localPlayer = players[username]
                     explosions = []
                     playing = True

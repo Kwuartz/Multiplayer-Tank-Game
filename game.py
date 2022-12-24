@@ -1,22 +1,33 @@
 import pygame
 import math
+import noise
 import random
 
 from config import mapWidth, mapHeight
 
-# Obstacles
-obstacles = []
+def generateMap(width, height, threshold = 0.575, scale = 10):
+    obstacles = []
 
-# Border
-obstacles.append(pygame.Rect(0, 0, mapWidth, 25))
-obstacles.append(pygame.Rect(0, mapHeight - 25, mapWidth, 25))
-obstacles.append(pygame.Rect(0, 0, 25, mapHeight))
-obstacles.append(pygame.Rect(mapWidth - 25, 0, 25, mapHeight))
+    # Border
+    obstacles.append(Obstacle(-25, -25, mapWidth, 50, (0, 0, 0)))
+    obstacles.append(Obstacle(-25, mapHeight - 25, mapWidth + 25, 50, (0, 0, 0)))
+    obstacles.append(Obstacle(-25, -25, 50, mapHeight + 25, (0, 0, 0)))
+    obstacles.append(Obstacle(mapWidth - 25, -25, 50, mapHeight + 25, (0, 0, 0)))
 
-# Random
-totalObstacles = 65
-for _ in range(totalObstacles):
-    obstacles.append(pygame.Rect(random.randint(0, mapWidth), random.randint(0, mapHeight), random.randint(25, 75), random.randint(25, 75)))
+    blockWidth = mapWidth / width
+    blockHeight = mapHeight / height
+
+    seed = random.randint(1, 100)
+        
+    for x in range(width):
+        for y in range(height):
+            value = (noise.pnoise2(x / scale, y / scale, base=seed) + 1) / 2
+
+            if value > threshold:
+                color = (round(value * 20), round(value * 190), round(value * 145))
+                obstacles.append(Obstacle(x * blockWidth, y * blockHeight, blockWidth, blockHeight, color))
+
+    return obstacles
 
 class Game:
     def __init__(self):
@@ -24,7 +35,7 @@ class Game:
         self.players = {}
         self.gameEvents = {}
         self.projectiles = []
-        self.obstacles = obstacles
+        self.obstacles = generateMap(100, 100)
 
     def updatePlayer(self, data):
         player = self.players[data.username]
@@ -91,7 +102,7 @@ class Game:
                         break
                     
                 for obstacle in self.obstacles:
-                    if obstacle.colliderect(projectile.rect):
+                    if obstacle.rect.colliderect(projectile.rect):
                         if projectile in self.projectiles:
                             self.projectiles.remove(projectile)
                             self.addEvent("projectile-destroyed", index)
@@ -100,6 +111,15 @@ class Game:
             for player in self.players.values():
                 pass
 
+class GameEvent:
+    def __init__(self, name, data):
+        self.name = name
+        self.data = data
+
+class Obstacle:
+    def __init__(self, x, y, width, height, color):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = color
 
 class Projectile:
     speed = 300
@@ -119,13 +139,7 @@ class Projectile:
         self.y += math.sin(self.angle) * self.speed * delta
 
         self.rect.x, self.rect.y = self.x, self.y
-
-class GameEvent:
-    def __init__(self, name, data):
-        self.name = name
-        self.data = data
         
-
 class Player:
     speed = 100
     health = 100
@@ -181,17 +195,17 @@ class Player:
         
         # Collisions
         for obstacle in obstacles:
-            if obstacle.colliderect(self.x + xDirection, self.y, self.width, self.height):
+            if obstacle.rect.colliderect(self.x + xDirection, self.y, self.width, self.height):
                 if xDirection > 0:
-                    xDirection = obstacle.left - self.rect.right
+                    xDirection = obstacle.rect.left - self.rect.right
                 else:
-                    xDirection = self.rect.left - obstacle.right
+                    xDirection = self.rect.left - obstacle.rect.right
                     
-            if obstacle.colliderect(self.x, self.y + yDirection, self.width, self.height):
+            if obstacle.rect.colliderect(self.x, self.y + yDirection, self.width, self.height):
                 if yDirection > 0:
-                    yDirection = obstacle.top - self.rect.bottom
+                    yDirection = obstacle.rect.top - self.rect.bottom
                 else:
-                    yDirection = self.rect.top - obstacle.bottom
+                    yDirection = self.rect.top - obstacle.rect.bottom
         
         self.x += xDirection
         self.y += yDirection

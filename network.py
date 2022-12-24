@@ -12,12 +12,12 @@ class Network:
         try:
             self.client.connect(self.address)
             self.client.send(dumps(username))
-            return loads(self.client.recv(4096))
+            return loads(self.client.recv(500000))
         except:
             raise
 
-    def send(self, payload, recieving=True):
+    def send(self, payload, recieving=True, size=1024):
         self.client.send(dumps(payload))
 
         if recieving:
-            return loads(self.client.recv(4096))
+            return loads(self.client.recv(size))
