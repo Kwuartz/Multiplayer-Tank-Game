@@ -35,7 +35,7 @@ class Game:
         self.players = {}
         self.gameEvents = {}
         self.projectiles = []
-        self.obstacles = generateMap(60, 60)
+        self.obstacles = generateMap(100, 100)
 
     def updatePlayer(self, data):
         player = self.players[data.username]
@@ -91,7 +91,7 @@ class Game:
                 projectile.update(delta)
 
                 for player in self.players.values():
-                    if not player.dead and player.rect.colliderect(projectile.rect):
+                    if not player.dead and player.rect.colliderect(projectile.rect) and projectile.origin != player.username:
                         self.projectiles.remove(projectile)
                         self.addEvent("projectile-destroyed", index)
                         
@@ -127,12 +127,14 @@ class Projectile:
     height = 5
     color = (100, 100, 100)
 
-    def __init__(self, x, y, angle):
+    def __init__(self, x, y, angle, origin):
         self.angle = angle
         # Making the bullet start at the end of the turret
-        self.x = x + math.cos(self.angle) * 50
-        self.y = y + math.sin(self.angle) * 50
+        self.x = x + math.cos(self.angle) * 32
+        self.y = y + math.sin(self.angle) * 32
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+        self.origin = origin
 
     def update(self, delta):
         self.x += math.cos(self.angle) * self.speed * delta
