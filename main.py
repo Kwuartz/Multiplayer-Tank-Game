@@ -56,6 +56,8 @@ def main():
 
     minimap = Minimap(20, 20, 200, 200, username)
 
+    cameraOffset = pygame.Vector2(0, 0)
+
     while running:
         if playing:
             for event in pygame.event.get():
@@ -69,7 +71,9 @@ def main():
             delta = clock.tick(60) / 1000
             
             # For scrolling
-            cameraOffset = cameraOffsetX, cameraOffsetY = pygame.Vector2(max(min(localPlayer.x - screenWidth / 2, mapWidth - screenWidth), 0), max(min(localPlayer.y - screenHeight / 2, mapHeight - screenHeight), 0))
+            trueCameraOffset = pygame.Vector2(max(min(localPlayer.x - screenWidth / 2, mapWidth - screenWidth), 0), max(min(localPlayer.y - screenHeight / 2, mapHeight - screenHeight), 0))
+            cameraOffset[0] += (trueCameraOffset[0] - cameraOffset[0]) / 30
+            cameraOffset[1] += (trueCameraOffset[1] - cameraOffset[1]) / 30
 
             for projectile in projectiles:
                 projectile.update(delta)
@@ -106,7 +110,7 @@ def main():
                     playing = False
 
             # Graphics
-            screen.fill((255,255,255))
+            screen.fill((200, 200, 200))
 
             for player in players.values():
                 if not player.dead:
@@ -118,8 +122,8 @@ def main():
                     screen.blit(rotatedTurret, rotatedTurret.get_rect(center=player.rect.center - cameraOffset))
 
                     # Health bar
-                    pygame.draw.rect(screen, (255, 0, 0), (player.rect.x - cameraOffsetX, player.rect.y - cameraOffsetY - player.height * 0.25, player.width, 10))
-                    pygame.draw.rect(screen, (0, 255, 0), (player.rect.x - cameraOffsetX, player.rect.y - cameraOffsetY - player.height * 0.25, player.width * player.health / 100, 10))
+                    pygame.draw.rect(screen, (255, 0, 0), (player.rect.x - cameraOffset[0], player.rect.y - cameraOffset[1] - player.height * 0.25, player.width, 10))
+                    pygame.draw.rect(screen, (0, 255, 0), (player.rect.x - cameraOffset[0], player.rect.y - cameraOffset[1] - player.height * 0.25, player.width * player.health / 100, 10))
             
             for projectile in projectiles:
                 screen.blit(projectileImage, (projectile.rect.topleft - cameraOffset, (projectile.width, projectile.height)))

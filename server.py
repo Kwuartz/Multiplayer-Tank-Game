@@ -7,7 +7,7 @@ from game import Game, Player, Projectile, GameEvent
 
 class Server:
     def __init__(self):
-        self.address = ("localhost", 5555)
+        self.address = ("", 3389)
         self.socket = socket(AF_INET, SOCK_STREAM)
         self.maxConnections = 5
         self.game = Game()

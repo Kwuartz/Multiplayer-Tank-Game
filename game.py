@@ -35,7 +35,7 @@ class Game:
         self.players = {}
         self.gameEvents = {}
         self.projectiles = []
-        self.obstacles = generateMap(100, 100)
+        self.obstacles = generateMap(60, 60)
 
     def updatePlayer(self, data):
         player = self.players[data.username]
